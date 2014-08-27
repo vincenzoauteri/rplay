@@ -19,20 +19,44 @@ import webapp2
 import re
 import string
 
+import subprocess
 import sys, os
 sys.path.append(os.path.dirname(__file__))
 
 from handlers import *
 from security import *
 
+def play():
+    bin_path = os.path.join(os.path.dirname(__file__), 'bin/')    
+    videos_path = os.path.join(os.path.dirname(__file__), 'videos/')    
+    proc = subprocess.Popen([bin_path + "omxplayer " + videos_path + "test.h264"], stdout=subprocess.PIPE, shell=True)
+    logging.error("play!")
+    logging.error(proc)
+    (out, err) = proc.communicate()
+    logging.error( out)
+    logging.error( err)
 
 routes = [
     ('/', FrontPageHandler),
-    ('/explorer',ExplorerHandler)
+    ('/explorer',ExplorerHandler),
+    ('/remote',RemoteHandler)
     ]
 
-application= webapp2.WSGIApplication(routes,
+application = webapp2.WSGIApplication(routes,
     debug=True)
+
+"""
+def application(environ,start_response):
+    status = '200 OK' 
+    output = 'Hello World!'
+
+    response_headers = [('Content-type', 'text/plain'),
+                        ('Content-Length', str(len(output)))]
+    start_response(status, response_headers)
+    play()
+    return [output]
+ """
+     
 
 
 
