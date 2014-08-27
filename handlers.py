@@ -1,13 +1,18 @@
-import os 
 import webapp2
+import Cookie
 import re
 import cgi
-from security import *
 import jinja2
 import logging
 import urllib
-from subprocess import call
+import subprocess 
 
+import sys, os
+sys.path.append(os.path.dirname(__file__))
+
+from security import *
+
+import player
 
 
 jinja_env = jinja2.Environment(
@@ -17,8 +22,6 @@ jinja_env = jinja2.Environment(
 def is_video(path):
     res = re.search("mp4$",path)
     return res > 0 
-
-
 
 #General 
 def render_str(template, **params):
@@ -36,13 +39,6 @@ class Handler(webapp2.RequestHandler):
     def render_str(self, template, **params):
         """Utility function that can add new stuff to parameters passed"""
         params['style']='cerulean'
-        if self.user : 
-          params['welcome']='%s' % self.user.username
-          params['logout']='Logout'
-        else :
-          params['welcome']='Login'
-          params['login']='Login'
-          params['signup']='Signup'
 
         return render_str(template, **params)
 
@@ -50,27 +46,22 @@ class Handler(webapp2.RequestHandler):
         """Render jinja template with named parameters"""
         self.write(self.render_str(template, **kw))
     
-    def set_secure_cookie(self, name, val):
+    def set_cookie(self, name, val):
         """Send a http header with a hashed cookie"""
-        hashed_cookie = make_cookie_hash(val)
+        cookie[name]=val
+        cookie[name]["path"]="Path='/'"
         self.response.headers.add_header('Set-Cookie',
-              "%s=%s; Path='/'" % (name,hashed_cookie))
+              cookie.output())
 
-    def read_secure_cookie(self, name):
+    def read_cookie(self, name):
         """Check if requesting browser sent us a cookie"""
-        hashed_cookie = self.request.cookies.get(name)
-        logging.error("Cookie name %s hash %s" % (name,hashed_cookie)) 
-        if hashed_cookie :
-            return verify_cookie_hash(hashed_cookie)
-        else:
-            return None
+        cookie = self.request.cookies.get(name)
+        return cookie
 
     def initialize(self, *a, **kw):
         """Function called before requests are processed.
            Used to check for sent cookies"""
         webapp2.RequestHandler.initialize(self, *a, **kw)
-        uid = self.read_secure_cookie('user_id')
-        self.user = uid and User.get_by_id(int(uid))
 
 
 
@@ -95,20 +86,21 @@ class ExplorerHandler(Handler):
         if local_path == '' :
             local_path = "videos/"
 
-        call(["ls","-l"])
         try:
             logging.error("try!")
             os_path=os.path.join(os.path.dirname(__file__),local_path)
             logging.error("ospath!")
-            if os.path.isfile(os_path[:-1]) is True:
+            file_path =  os_path[:-1]
+            if os.path.isfile(file_path) is True:
                 logging.error("isfile!")
-                if is_video(os_path[:-1]) is True:
-                    self.redirect("explorer")
+                if is_video(file_path) is True:
+                    player.start(file_path)
+                    self.render("remote.html");
                     return
             file_list = os.listdir(os_path)
             logging.error("filelist")
-        except:
-            logging.error("except!")
+        except Exception,error:
+            logging.error("excepion:" + str(error))
             self.redirect("explorer")
             return
 
@@ -118,6 +110,34 @@ class ExplorerHandler(Handler):
             full_path.append(urllib.pathname2url(local_path+item))
         tuplist = zip(file_list,full_path)
         self.render("explorer.html",tuplist=tuplist)
+
+class RemoteHandler(Handler):
+    def get(self):
+      self.render("remote.html")
+
+    def post(self):
+      data = self.request.get('input')
+      logging.error("data")
+
+      if data == "pause" or data == "play":
+          player.pause()
+      elif data == "ffwd30":
+          player.fastfwd30()
+      elif data == "rwnd30":
+          player.rewind30()
+      elif data == "stop":
+          player.stop()
+          self.redirect("/explorer")
+          return
+      elif data == "next":
+          player.next_chapter()
+      elif data == "previous":
+          player.previous_chapter()
+      elif data == "info":
+          player.info()
+
+
+      self.redirect("/remote")
 
 
 class TestHandler(Handler):

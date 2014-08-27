@@ -1,0 +1,27 @@
+{% extends "public-base.html" %}
+{% block head %}
+    <title>Remote</title>
+{% endblock %}
+
+{% block content %}
+
+<form action="/remote" method="POST" enctype="multipart/form-data">             
+  <button type="submit" name="input" value="stop">Stop Playing</button>                   
+  </br>
+  <button type="submit" name="input" value="next">Next Chapter</button>                   
+  </br>
+  <button type="submit" name="input" value="previous">Previous Chapter</button>                   
+  </br>
+  <button type="submit" name="input" value="pause">Pause Playing</button>                  
+  </br>
+  <button type="submit" name="input" value="play">Resume Playing</button>                  
+  </br>
+  <button type="submit" name="input" value="ffwd">Fast Forward 30 Secs</button>                  
+  </br>
+  <button type="submit" name="input" value="rwnd">Rewind 30 Secs</button>                 
+  </br>
+  <button type="submit" name="input" value="info">Info</button>                 
+  </br>
+</form> 
+
+{% endblock %}
